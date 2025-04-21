@@ -1,0 +1,3 @@
+usertrap
+p->trapframe->a7的值为7，7表示SYS_exec的值，因此，在usertrap中，当a7的值为7时，执行sys_exec()
+用户态
