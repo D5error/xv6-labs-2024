@@ -91,3 +91,15 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64 sys_trace(void) {
+  int mask;
+  
+  // 将a0寄存器的值存入mask
+  if (argint(0, &mask) < 0) {
+    return -1;
+  }
+
+  myproc()->mask = mask;
+  return 0;
+}
