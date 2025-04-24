@@ -33,9 +33,7 @@ trapinithart(void)
 // handle an interrupt, exception, or system call from user space.
 // called from trampoline.S
 //
-void
-usertrap(void)
-{
+void usertrap(void) {
   int which_dev = 0;
 
   if((r_sstatus() & SSTATUS_SPP) != 0)
