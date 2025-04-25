@@ -96,7 +96,8 @@ uint64 sys_trace(void) {
   int mask;
   
   // 将a0寄存器的值存入mask
-  if (argint(0, &mask) < 0) {
+  argint(0, &mask);
+  if (mask < 0) {
     return -1;
   }
 
