@@ -2,6 +2,6 @@ usertrap
 p->trapframe->a7的值为7，7表示SYS_exec的值，因此，在usertrap中，当a7的值为7时，执行sys_exec()
 用户态
 a3寄存器对应num
-尝试将内存地址0的内容赋值给num，(lw a3,0(zero))表示从zero寄存器（硬编码为0）加上偏移量0的地址加载字到a3寄存器，而Virtual Address 0在xv6中未被映射，会导致缺页异常
+程序尝试将内存地址0的内容赋值给num，而lw a3,0(zero)表示从zero寄存器（硬编码为0）加上偏移量0的地址加载字到a3寄存器，但Virtual Address 0在xv6中未被映射，会导致缺页异常
 "initcode\000\000\000\000\000\000\000"
 pid为1

@@ -694,7 +694,18 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    printf("%d %s %s", p->pid, state, p->name);
-    printf("\n");
+    
+    // 打印进程的进程id、状态、进程名
+    printf("pid = %d, state = %s, name = %s, ", p->pid, state, p->name);
+    
+    // 打印进程的内存大小、内核栈大小
+    printf("sz = %ld, kstack = %ld, ", p->sz, p->kstack);
+    
+    // 打印进程的trapframe
+    if (p->trapframe) {
+      // 打印进程的用户程序计数器和栈指针
+      printf("epc = %ld, sp = %ld \n", p->trapframe->epc, p->trapframe->sp);
+    }
+    
   }
 }
