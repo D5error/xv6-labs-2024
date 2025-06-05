@@ -89,6 +89,7 @@ supercheck(uint64 s)
 {
   pte_t last_pte = 0;
 
+  // 检查s到s+512*PGSIZE的pte是否正确
   for (uint64 p = s;  p < s + 512 * PGSIZE; p += PGSIZE) {
     pte_t pte = (pte_t) pgpte((void *) p);
     if(pte == 0)
@@ -102,10 +103,12 @@ supercheck(uint64 s)
     last_pte = pte;
   }
 
+  // 写入测试值
   for(int i = 0; i < 512; i += PGSIZE){
     *(int*)(s+i) = i;
   }
 
+  // 验证测试值
   for(int i = 0; i < 512; i += PGSIZE){
     if(*(int*)(s+i) != i)
       err("wrong value");
@@ -120,10 +123,11 @@ superpg_test()
   printf("superpg_test starting\n");
   testname = "superpg_test";
   
-  char *end = sbrk(N);
+  char *end = sbrk(N); // 调用kernel/sysproc.c中的sys_sbrk函数
   if (end == 0 || end == (char*)0xffffffffffffffff)
     err("sbrk failed");
   
+  // 向上取整对齐
   uint64 s = SUPERPGROUNDUP((uint64) end);
   supercheck(s);
   if((pid = fork()) < 0) {

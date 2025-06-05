@@ -20,7 +20,8 @@ struct run {
 
 struct {
   struct spinlock lock;
-  struct run *freelist;
+  struct run *freelist; // 空闲普通物理页链表
+  struct run *super_freelist; // 空闲超级物理页链表
 } kmem;
 
 void
@@ -35,8 +36,13 @@ freerange(void *pa_start, void *pa_end)
 {
   char *p;
   p = (char*)PGROUNDUP((uint64)pa_start);
-  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+  // 留8个页给超级页
+  for(; p + PGSIZE <= (char*)pa_end - 8 * SUPERPGSIZE; p += PGSIZE)
     kfree(p);
+
+  p = (char*)SUPERPGROUNDUP((uint64)p);
+  for(; p + SUPERPGSIZE <= (char*)pa_end; p += SUPERPGSIZE)
+    super_kfree(p);
 }
 
 // Free the page of physical memory pointed at by pa,
@@ -79,4 +85,42 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
   return (void*)r;
+}
+
+// 分配超级页，大小为2MB
+void* super_kalloc(void) {
+  struct run* r;
+
+  acquire(&kmem.lock); // 加锁
+  r = kmem.super_freelist; // 取出第一个空闲的超级页
+
+  if (r) {
+    kmem.super_freelist = r->next;
+  }
+  release(&kmem.lock); // 解锁
+
+  if (r) {
+    memset((char*)r, 5, SUPERPGSIZE); // 填充超级页
+  }
+  return (void*)r;
+}
+
+// 释放超级页
+void super_kfree(void *pa) {
+  struct run *r;
+
+  if (((uint64)pa % SUPERPGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP) {
+    panic("super_kfree");
+  }
+
+  // Fill with junk to catch dangling refs.
+  // 用无效数据填充以捕获悬空引用
+  memset(pa, 1, SUPERPGSIZE);
+
+  r = (struct run*)pa;
+
+  acquire(&kmem.lock); // 加锁
+  r->next = kmem.super_freelist; // 将释放的超级页插入到空闲链表的头部
+  kmem.super_freelist = r; // 更新空闲链表的头部
+  release(&kmem.lock); // 解锁
 }

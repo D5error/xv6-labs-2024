@@ -43,8 +43,11 @@ sys_sbrk(void)
 
   argint(0, &n);
   addr = myproc()->sz;
+  // growproc()增大或缩小p->pagetable的大小
   if(growproc(n) < 0)
     return -1;
+
+  // 返回之前的sz
   return addr;
 }
 
