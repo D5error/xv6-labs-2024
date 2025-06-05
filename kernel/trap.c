@@ -77,8 +77,18 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) { // 定时器中断
+    p -> ticks++; // 增加计数器
+    
+    // 如果定时器等于间隔时间，将进程的执行点重定向到handler的地址
+    if (p -> is_handler_running == 0 && p -> ticks == p -> interval) {
+      memmove(&p->sig_trapframe, p->trapframe, sizeof(struct trapframe));
+      p -> ticks = 0;
+      p -> is_handler_running = 1;
+      p -> trapframe -> epc = p -> handler_address; // 设置epc为handler地址
+    }
     yield();
+  }
 
   usertrapret();
 }

@@ -104,4 +104,10 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  int interval; // 调用sigalarm时的间隔时间
+  uint64 handler_address; // 调用sigalarm时handler的地址
+  int ticks; // 记录调用sigalarm后的ticks数
+  int is_handler_running; // 记录handler是否正在运行，1表示正在运行，0表示没有运行
+  struct trapframe sig_trapframe; // 保存调用sigalarm时的trapframe，即各种寄存器的值
 };

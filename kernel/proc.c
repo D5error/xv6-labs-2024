@@ -146,6 +146,12 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  // 初始化
+  p -> ticks = 0;
+  p -> interval = 0;
+  p -> handler_address = 0;
+  memset(&p->sig_trapframe,0,sizeof(p->sig_trapframe));
+
   return p;
 }
 

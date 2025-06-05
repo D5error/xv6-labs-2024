@@ -107,6 +107,7 @@ test1()
   } else {
     printf("test1 passed\n");
   }
+  // i == j才能通过测试
 }
 
 //

@@ -91,3 +91,33 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+
+uint64 sys_sigalarm(void) {
+  // printf("sys_sigalarm: 测试");
+  struct proc *p = myproc();
+
+  // 获取第一个参数，间隔时间
+  int interval;
+  argint(0, &interval);
+  p -> interval = interval;
+
+  // 获取第二个参数，handler地址
+  uint64 handler_address;
+  argaddr(1, &handler_address);  
+  p -> handler_address = handler_address;
+
+  p -> ticks = 0; // 每次调用ticks应该从0开始
+
+  return 0;
+}
+
+uint64 sys_sigreturn(void) {
+  // printf("sys_sigreturn: 测试");
+  struct proc *p = myproc();
+  p -> is_handler_running = 0; // 停止运行handler
+
+  // 恢复寄存器状态
+  memmove(p->trapframe, &p->sig_trapframe, sizeof(struct trapframe)); 
+  return p -> trapframe -> a0; 
+}
