@@ -18,15 +18,22 @@ struct run {
   struct run *next;
 };
 
-struct {
+struct kmem {
   struct spinlock lock;
   struct run *freelist;
-} kmem;
+  char lock_name[NCPU]; // 区分不同CPU的锁
+} kmems[NCPU]; // 每个CPU都有一个kmem结构体
+
 
 void
-kinit()
+kinit() // 这个函数只有0号CPU会执行
 {
-  initlock(&kmem.lock, "kmem");
+   // 初始化每个CPU的锁
+  for (int i = 0; i < NCPU; i++) {
+    snprintf(kmems[i].lock_name, sizeof(kmems[i].lock_name), "kmem_%d", i);
+    initlock(&kmems[i].lock, kmems[i].lock_name);
+  }
+
   freerange(end, (void*)PHYSTOP);
 }
 
@@ -56,10 +63,15 @@ kfree(void *pa)
 
   r = (struct run*)pa;
 
-  acquire(&kmem.lock);
-  r->next = kmem.freelist;
-  kmem.freelist = r;
-  release(&kmem.lock);
+  push_off();
+  int cpu_id = cpuid();
+  pop_off();
+
+  acquire(&kmems[cpu_id].lock);
+  // 新的空闲物理页插入到freelist头部
+  r -> next = kmems[cpu_id].freelist; 
+  kmems[cpu_id].freelist = r;
+  release(&kmems[cpu_id].lock);
 }
 
 // Allocate one 4096-byte page of physical memory.
@@ -70,11 +82,43 @@ kalloc(void)
 {
   struct run *r;
 
-  acquire(&kmem.lock);
-  r = kmem.freelist;
-  if(r)
-    kmem.freelist = r->next;
-  release(&kmem.lock);
+  push_off();
+  int cpu_id = cpuid();
+  pop_off();
+
+  acquire(&kmems[cpu_id].lock);
+
+  // 从当前CPU的freelist中取出首个空闲物理页
+  r = kmems[cpu_id].freelist;
+
+  // 成功获取到空闲物理页
+  if (r) {
+    kmems[cpu_id].freelist = r->next;
+    release(&kmems[cpu_id].lock);
+  }
+  // 从其他CPU的freelist中获取空闲物理页
+  else {
+    release(&kmems[cpu_id].lock);
+
+    for(int i = 0; i < NCPU; i++){
+      if(i != cpu_id) {
+        acquire(&kmems[i].lock);
+        r = kmems[i].freelist;
+
+        // 没获取到其它cpu的物理页
+        if(!r) {
+          release(&kmems[i].lock);
+          continue;
+        }
+        // 成功获取到其它cpu的物理页
+        else {
+          kmems[i].freelist = r->next;
+          release(&kmems[i].lock);
+          break;
+        }
+      }
+    }
+  }
 
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
